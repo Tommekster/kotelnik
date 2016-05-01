@@ -1,2 +1,2 @@
 # kotelnik
-A simple program that takse care of a boiler. 
+A simple program that takes care of a boiler. 
