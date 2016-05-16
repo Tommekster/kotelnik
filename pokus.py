@@ -44,5 +44,64 @@ def readSens(loc=0):
 	del(sens[0])						# odstranim HTML hlavicku
 	return [int(s) for s in sens]
 
+class mTime:
+	def __init__(self,_h,_m):
+		self.h=_h
+		self.m=_m
+
+class mDay:
+	def __init__(self):
+		pass
+
+	def setStartTime(self,h,m):
+		setattr(self,'start',mTime(h,m))
+
+	def setStopTime(self,h,m):
+		setattr(self,'stop',mTime(h,m))
+
+	def setStartStop(self,h,m,hh,mm):
+		setattr(self,'start',mTime(h,m))
+		setattr(self,'stop',mTime(hh,mm))
+
+
+class mWeek:
+	def __init__(self):
+		self.days=[mDay() for i in range(0,7)]
+	
+	#def getDay(self,index):
+	#	return self.days[index]
+
+	def isTimeForHeating():
+		day = self.days[time.localtime().tm_wday]
+		# if 
+
+class Kotelnik:
+	def __init__(self):
+		self.out_temperature = 15.0	# je-li venku vyssi teplota, tak netopi
+		self.pipes_temperature = 30.0	# je-li trubka ohrata, tak kotel topi
+		self.week = mWeek()
+		self.week.days[0].setStartStop(5,0,22,30)	# casy na vytapeni behem tydne
+		self.week.days[1].setStartStop(5,0,22,30)
+		self.week.days[2].setStartStop(5,0,22,30)
+		self.week.days[3].setStartStop(5,0,22,30)
+		self.week.days[4].setStartStop(5,0,23,59)
+		self.week.days[5].setStartStop(8,0,23,59)
+		self.week.days[6].setStartStop(8,0,23,0)
+		self.timeout_interval = 3600	# kdyz bude podle trubek natopeno, jak dlouho ma kotel odpocivat
+		self.filterWeight = 1/32	# parametr dolnopropustoveho filtru
+		self.referenceVoltage=1.1	# referencni napeti pro mereni referencnich "5V"
+		self.temperatures = [15.0 for i in range(0,6)]	# vychozi teploty, aby predesli selhani
+
+	def refreshTemperature(self):
+		try:
+			sens = readSens()	# ziskam hodnoty ze senzoru
+		except (sensorError,connectionError):
+			return
+		pom = sens[-2]		# pomer merice VCC
+		vcc = sens[-1]		# hodnota na merici VCC pri VREF
+		rawTemps = [s/10.24*vcc/pom*1.1-273 for s in sens[:-2]]	# prepocet hodnot senzoru do stupni Celsia
+		newTemps = [self.temperatures[i] + (rawTemps[i] - self.temperatures[i])*self.filterWeight for i in range(0,6)]
+		
+
 if __name__ == '__main__':
 	print('Pokus: uvidime, co zmuzeme s kotelnikem.')
