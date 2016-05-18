@@ -3,7 +3,8 @@
 import http.client
 import time
 
-logCtrlFile = '/tmp/kotelctl.log'
+logCtrlFile = '/tmp/kotelnik.log'
+logTempFile = '/tmp/kotelnikTemps.log'
 
 class connectionError(RuntimeError):
 	def __init__(self, arg):
@@ -15,6 +16,14 @@ class sensorError(RuntimeError):
 def logCtrl(str):
 	file = open(logCtrlFile,'a')
 	file.write(str)
+	file.write("\n")
+	file.close()
+
+def logTemp(str):
+	file = open(logTempFile,'a')
+	file.write(str)
+	file.write("\n")
+	file.close()
 	
 def kotelOn():
 	conn = http.client.HTTPConnection('192.168.11.99')	# nastavim spojeni na maleho kotelnika
@@ -49,20 +58,37 @@ class mTime:
 		self.h=_h
 		self.m=_m
 
+	def isLess(self,h,m): # tento cas uz byl, oproti zadanemu
+		return self.h < h or (self.h == h and self.m < m)
+
+	def isGreater(self,h,m):	# tento cas teprve bude oproti zadanemu
+		return self.h > h or (self.h == h and self.m > m)
+
 class mDay:
 	def __init__(self):
+		self.filledStart = False
 		pass
 
 	def setStartTime(self,h,m):
 		setattr(self,'start',mTime(h,m))
+		self.filledStart = True
 
 	def setStopTime(self,h,m):
 		setattr(self,'stop',mTime(h,m))
+		self.filledStop = True
 
 	def setStartStop(self,h,m,hh,mm):
 		setattr(self,'start',mTime(h,m))
 		setattr(self,'stop',mTime(hh,mm))
+		self.filledStart = True
+		self.filledStart = True
 
+	def isTimeForHeating(self):
+		if not (self.filledStart and self.filledStart):
+			return False
+		h = time.localtime().tm_hour
+		m = time.localtime().tm_min
+		return self.start.isLess(h,m) and self.stop.isGreater(h,m)
 
 class mWeek:
 	def __init__(self):
@@ -71,9 +97,9 @@ class mWeek:
 	#def getDay(self,index):
 	#	return self.days[index]
 
-	def isTimeForHeating():
+	def isTimeForHeating(self):
 		day = self.days[time.localtime().tm_wday]
-		# if 
+		return day.isTimeForHeating()
 
 class Kotelnik:
 	def __init__(self):
@@ -101,7 +127,37 @@ class Kotelnik:
 		vcc = sens[-1]		# hodnota na merici VCC pri VREF
 		rawTemps = [s/10.24*vcc/pom*1.1-273 for s in sens[:-2]]	# prepocet hodnot senzoru do stupni Celsia
 		newTemps = [self.temperatures[i] + (rawTemps[i] - self.temperatures[i])*self.filterWeight for i in range(0,6)]
+		self.temperatures = newTemps
+		tempstr='%d' % int(time.time())
+		for t in self.temperatures:
+			tempstr+="   %.5f" % t
+		logTemp(tempstr)
 		
+	def isTemperatureForHeating(self):
+		return self.out_temperature > self.temperatures[0]	# venkovni teplota je nizka
+		
+	def boilerHeats(self):
+		return max(k.temperatures[1:]) > self.pipes_temperature
+		
+	def mayBoilerHeat(self):
+		return self.isTemperatureForHeating() and self.week.isTimeForHeating()
+		
+	def controlBoiler(self):
+		if self.mayBoilerHeat():
+			#if not self.boilerHeats():
+			kotelOn()
+		elif self.boilerHeats():
+			kotelOff()
+			
+	def doYourWork(self):
+		self.work = True
+		cycles = 0
+		while(self.work):
+			self.refreshTemperature()
+			if cycles % 10 == 0:
+				self.controlBoiler()
+			cycles += 1
+			time.sleep(60)	
 
 if __name__ == '__main__':
 	print('Pokus: uvidime, co zmuzeme s kotelnikem.')
