@@ -33,7 +33,7 @@ def kotelOn():
 def kotelOff():
 	conn = http.client.HTTPConnection('192.168.11.99')	# nastavim spojeni na maleho kotelnika
 	conn.request('GET','/off')				# necham kotel vypnout
-	logCtrl(time.strftime('%d.%m.%Y %H:%M')+' ON')
+	logCtrl(time.strftime('%d.%m.%Y %H:%M')+' OFF')
 
 def readSens(loc=0):
 	if loc:
@@ -137,7 +137,7 @@ class Kotelnik:
 		return self.out_temperature > self.temperatures[0]	# venkovni teplota je nizka
 		
 	def boilerHeats(self):
-		return max(k.temperatures[1:]) > self.pipes_temperature
+		return max(self.temperatures[1:]) > self.pipes_temperature
 		
 	def mayBoilerHeat(self):
 		return self.isTemperatureForHeating() and self.week.isTimeForHeating()
@@ -158,6 +158,12 @@ class Kotelnik:
 				self.controlBoiler()
 			cycles += 1
 			time.sleep(60)	
+	
+	def cancelWork(self):
+		self.work = False
 
 if __name__ == '__main__':
-	print('Pokus: uvidime, co zmuzeme s kotelnikem.')
+	#print('Pokus: uvidime, co zmuzeme s kotelnikem.')
+	k=Kotelnik()
+	k.doYourWork()
+	print('Kotelnik skoncil. ')
