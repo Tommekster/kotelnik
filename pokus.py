@@ -1,6 +1,7 @@
 #!/usr/bin/python3
 #import time		# time.sleep(5.5)
 import http.client
+from socket import error as socket_error
 import time
 
 logCtrlFile = '/tmp/kotelnik.log'
@@ -121,7 +122,7 @@ class Kotelnik:
 	def refreshTemperature(self):
 		try:
 			sens = readSens()	# ziskam hodnoty ze senzoru
-		except (sensorError,connectionError):
+		except (sensorError,connectionError,socket_error):
 			return
 		pom = sens[-2]		# pomer merice VCC
 		vcc = sens[-1]		# hodnota na merici VCC pri VREF
