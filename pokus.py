@@ -26,15 +26,26 @@ def logTemp(str):
 	file.write("\n")
 	file.close()
 	
-def kotelOn():
+def switchKotelOnOff(on=False):
 	conn = http.client.HTTPConnection('192.168.11.99')	# nastavim spojeni na maleho kotelnika
-	conn.request('GET','/on')				# necham kotel zapnout
-	logCtrl(time.strftime('%d.%m.%Y %H:%M')+' ON')
+	if on:
+		cmd = '/on'
+	else:
+		cmd = '/off'
+	try:
+ 		conn.request('GET',cmd)				# necham kotel zapnout
+	except (sensorError,connectionError,socket_error) as e:
+		logCtrl(time.strftime('%d.%m.%Y %H:%M')+'switchKotel('+str(on)+') Exception: '+str(e))
+		return
+	else:
+		logCtrl(time.strftime('%d.%m.%Y %H:%M')+' '+cmd)
+
+
+def kotelOn():
+	switchKotelOnOff(True)
 
 def kotelOff():
-	conn = http.client.HTTPConnection('192.168.11.99')	# nastavim spojeni na maleho kotelnika
-	conn.request('GET','/off')				# necham kotel vypnout
-	logCtrl(time.strftime('%d.%m.%Y %H:%M')+' OFF')
+	switchKotelOnOff(False)
 
 def readSens(loc=0):
 	if loc:
@@ -122,7 +133,8 @@ class Kotelnik:
 	def refreshTemperature(self):
 		try:
 			sens = readSens()	# ziskam hodnoty ze senzoru
-		except (sensorError,connectionError,socket_error):
+		except (sensorError,connectionError,socket_error) as e:
+			logCtrl(time.strftime('%d.%m.%Y %H:%M')+' refreshTemperature() Exception: '+str(e))
 			return
 		pom = sens[-2]		# pomer merice VCC
 		vcc = sens[-1]		# hodnota na merici VCC pri VREF
