@@ -1,8 +1,8 @@
 #!/usr/bin/python3
 #import time		# time.sleep(5.5)
-import http.client
-from socket import error as socket_error
-import time
+#import http.client
+#from socket import error as socket_error
+import time,serial
 
 logCtrlFile = '/tmp/kotelnik.log'
 logTempFile = '/tmp/kotelnikTemps.log'
@@ -27,19 +27,20 @@ def logTemp(str):
 	file.close()
 	
 def switchKotelOnOff(on=False):
-	conn = http.client.HTTPConnection('192.168.11.99')	# nastavim spojeni na maleho kotelnika
 	if on:
-		cmd = '/on'
+		cmd = 'a'	# on
 	else:
-		cmd = '/off'
+		cmd = 'n'	# off
 	try:
- 		conn.request('GET',cmd)				# necham kotel zapnout
-	except (sensorError,connectionError,socket_error) as e:
+		ser = serial.Serial('/dev/ttyUSB0',9600,timeout=0.05)
+		ser.write(bytes(cmd, 'UTF-8'))
+		ser.flush()
+		ser.close
+	except (sensorError,connectionError) as e:
 		logCtrl(time.strftime('%d.%m.%Y %H:%M')+'switchKotel('+str(on)+') Exception: '+str(e))
 		return
 	else:
 		logCtrl(time.strftime('%d.%m.%Y %H:%M')+' '+cmd)
-
 
 def kotelOn():
 	switchKotelOnOff(True)
@@ -47,22 +48,19 @@ def kotelOn():
 def kotelOff():
 	switchKotelOnOff(False)
 
-def readSens(loc=0):
-	if loc:
-		data1 = b'<html><head><title>Kotelnik Senzory</title></head><body><h2>Senzory</h2><pre>\n609\n665\n674\n653\n697\n666\n174\n747\n</pre><hr></body></html>'
-	else:
-		conn = http.client.HTTPConnection('192.168.11.99')	# nastavim spojeni na maleho kotelnika
-		conn.request('GET','/sens')				# pozadem o GET /sens
-		r1 = conn.getresponse()					# ziskam vysledek
-		if r1.status != 200:					# skontroluji status vysledku
-			raise connectionError('/sens is not 200 OK')
-		data1 = r1.read()					# vezmu si data
-	sens_str = data1.decode('utf8')				# preveduje na string
-	sens = sens_str.split('\n')				# rozdelim je podle odradkovani
-	if len(sens) < 10: 					# mam-li mene radku, asi se zrovna Atmel resetuj
+def readSens(retLin=False):
+	ser = serial.Serial('/dev/ttyUSB0', 9600, timeout=20)
+	line= ser.readline()
+	line= ser.readline()
+	if retLin:
+		return line
+	ser.close()
+	sens_str = line.decode('utf8')				# preveduje na string
+	sens_str = sens_str.strip('\x00')			# zbavim se patogennich nul, ale nevim, kde se berou
+	sens = sens_str.split('\t')				# rozdelim je podle odradkovani
+	if len(sens) < 9: 					# mam-li mene radku, asi se zrovna Atmel resetuj
 		raise sensorError('Dostal jsem malo dat.',sens)
-	del(sens[-1])						# odstranim HTML paticku
-	del(sens[0])						# odstranim HTML hlavicku
+	del(sens[-1])						# odstranim stav vytapeni (zatim se nepouzije)
 	return [int(s) for s in sens]
 
 class mTime:
