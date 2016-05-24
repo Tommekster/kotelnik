@@ -116,11 +116,11 @@ class Kotelnik:
 		self.out_temperature = 15.0	# je-li venku vyssi teplota, tak netopi
 		self.pipes_temperature = 30.0	# je-li trubka ohrata, tak kotel topi
 		self.week = mWeek()
-		self.week.days[0].setStartStop(5,0,22,30)	# casy na vytapeni behem tydne
-		self.week.days[1].setStartStop(5,0,22,30)
-		self.week.days[2].setStartStop(5,0,22,30)
-		self.week.days[3].setStartStop(5,0,22,30)
-		self.week.days[4].setStartStop(5,0,23,59)
+		self.week.days[0].setStartStop(5,30,22,30)	# casy na vytapeni behem tydne
+		self.week.days[1].setStartStop(5,30,22,30)
+		self.week.days[2].setStartStop(5,30,22,30)
+		self.week.days[3].setStartStop(5,30,22,30)
+		self.week.days[4].setStartStop(5,30,23,59)
 		self.week.days[5].setStartStop(8,0,23,59)
 		self.week.days[6].setStartStop(8,0,23,0)
 		self.timeout_interval = 3600	# kdyz bude podle trubek natopeno, jak dlouho ma kotel odpocivat
@@ -141,7 +141,7 @@ class Kotelnik:
 		self.temperatures = newTemps
 		tempstr='%d' % int(time.time())
 		for t in self.temperatures:
-			tempstr+="   %.5f" % t
+			tempstr+="%6.2f" % t
 		logTemp(tempstr)
 		
 	def isTemperatureForHeating(self):
